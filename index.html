@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Ticket to ride scoring</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      --background-colour: #ffddaa;
+      --black: #333;
+      background: var(--background-colour);
+      margin: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: sans-serif;
+      --train-colour: hsl(0, 50%, 40%);
+    }
+    #total {
+      text-align: right;
+      font-weight: bold;
+      border-bottom: 2px solid var(--train-colour);
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <track-score trains="1" points="1"></track-score>
+  <track-score trains="2" points="2"></track-score>
+  <track-score trains="3" points="4"></track-score>
+  <track-score trains="4" points="7"></track-score>
+  <track-score trains="5" points="10"></track-score>
+  <track-score trains="6" points="15"></track-score>
+  <track-score trains="7" points="18"></track-score>
+
+  <div id="total"></div>
+  <script>
+    let trainsWidth = 0;
+
+    const total = document.getElementById('total');
+    document.querySelector('body').addEventListener('update-score', (event) => {
+      const previousTotal = total.textContent || 0;
+      total.textContent = Number(previousTotal) + event.detail;
+    });
+
+    customElements.define('track-score', class extends HTMLElement {
+      constructor() {
+        super();
+
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = `
+        <style>
+          :host {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+          }
+
+          .static-text {
+            margin: 0 1em;
+          }
+
+          .trains {
+            display: flex;
+            min-width: var(--trains-width);
+          }
+
+          .train {
+            --train-width: 40px;
+            --train-height: calc(var(--train-width) * .4);
+            width: var(--train-width);
+            height: var(--train-height);
+            background-color: var(--train-colour);
+            position: relative;
+            margin-right: 10px;
+          }
+          .train::before, .train::after {
+            --border-width: 4px;
+            content: '';
+            display: block;
+            border: var(--border-width) solid transparent;
+            background-clip: content-box;
+          }
+          .train::before {
+            --height: calc(var(--train-height) * .5);
+            width: calc(var(--train-width) * .55);
+            height: var(--height);
+            border: var(--border-width) solid transparent;
+            border-top-color: var(--train-colour);
+            background-color: var(--train-colour);
+            position: absolute;
+            top: calc((var(--height) + var(--border-width)) * -1);
+            left: calc(var(--border-width) * -.75);
+            border-radius: 50% / var(--border-width);
+          }
+          .train::after {
+            width: calc(var(--train-width) * .2);
+            height: var(--train-height);
+            background-color: var(--train-colour);
+            border-top-color: var(--train-colour);
+            position: absolute;
+            top: calc((var(--train-height) + var(--border-width)) * -.7);
+            right: -2px;
+          }
+
+          .wheel {
+            --wheel-colour: var(--black);
+            --diameter: calc(var(--train-height) / 1.75);
+            width: var(--diameter);
+            height: var(--diameter);
+            border-radius: 50%;
+            background-color: var(--wheel-colour);
+            position: absolute;
+            right: 1px;
+            --wheel-offset: calc(var(--diameter) / -2);
+            bottom: var(--wheel-offset);
+            box-shadow: 
+              calc(-1 * (var(--diameter))) 0 var(--wheel-colour),
+              calc(var(--train-width) * -.6) -4px 0 5px var(--wheel-colour);
+          }
+
+          input {
+            border: 1px solid var(--black);
+            width: 4ch;
+            padding: .5em 1em;
+            height: 2em;
+          }
+
+          #result {
+            width: 4ch;
+            text-align: right;
+          }
+        </style>
+
+        <div class="trains"></div>
+        <div class="static-text">x</div>
+        <input type="number" />
+        <div class="static-text">=</div>
+        <div id="result"></div>`;
+
+        const numberOfTrains = this.attributes.trains.value;
+        this.trainShed = this.shadowRoot.querySelector('.trains');
+        for (let i = 0; i < numberOfTrains; i++) {
+          const train = document.createElement('div');
+          train.classList.add('train');
+          train.innerHTML = '<div class="wheel"></div>';
+          this.trainShed.appendChild(train);
+        }
+
+        this.result = this.shadowRoot.getElementById('result');
+        this.numberInput = this.shadowRoot.querySelector('input[type=number]');
+        this.points = this.attributes.points.value;
+
+        this.numberInput.addEventListener('keyup', () => {
+          const numberOfTrains = this.numberInput.value || 0;
+
+          const result = numberOfTrains * this.points;
+          this.result.textContent = result;
+          this.dispatchEvent(new CustomEvent('update-score', { detail: result, bubbles: true }))
+        });
+      }
+
+      connectedCallback() {
+        const width = this.trainShed.getBoundingClientRect().width;
+        if (width > trainsWidth) {
+          trainsWidth = width;
+          document.querySelector('body').style.setProperty('--trains-width', `${ width }px`);
+        }
+      }
+    })
+  </script>
+</body>
+</html>
