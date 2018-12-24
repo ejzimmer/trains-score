@@ -41,8 +41,11 @@
 
     const total = document.getElementById('total');
     document.querySelector('body').addEventListener('update-score', (event) => {
-      const previousTotal = total.textContent || 0;
-      total.textContent = Number(previousTotal) + event.detail;
+      const sum = Array.from(document.querySelectorAll('track-score'))
+        .map(result => result.score || 0)
+        .reduce((total, current) => total + current, 0);
+
+      total.textContent = sum;
     });
 
     customElements.define('track-score', class extends HTMLElement {
@@ -153,13 +156,8 @@
         this.numberInput = this.shadowRoot.querySelector('input[type=number]');
         this.points = this.attributes.points.value;
 
-        this.numberInput.addEventListener('keyup', () => {
-          const numberOfTrains = this.numberInput.value || 0;
-
-          const result = numberOfTrains * this.points;
-          this.result.textContent = result;
-          this.dispatchEvent(new CustomEvent('update-score', { detail: result, bubbles: true }))
-        });
+        this.numberInput.addEventListener('keyup', this.updateScore.bind(this));
+        this.numberInput.addEventListener('click', this.updateScore.bind(this));
       }
 
       connectedCallback() {
@@ -168,6 +166,15 @@
           trainsWidth = width;
           document.querySelector('body').style.setProperty('--trains-width', `${ width }px`);
         }
+      }
+
+      updateScore() {
+        const numberOfTrains = this.numberInput.value || 0;
+
+        const result = numberOfTrains * this.points;
+        this.score = result;
+        this.result.textContent = result;
+        this.dispatchEvent(new Event('update-score', { bubbles: true }))
       }
     })
   </script>
